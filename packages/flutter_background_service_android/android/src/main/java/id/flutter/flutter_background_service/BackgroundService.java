@@ -271,6 +271,24 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
                 return;
             }
 
+            // Dynamically change the foreground-service type while the service is
+            // already running. Needed on Android 12+ where FOREGROUND_SERVICE_TYPE_MICROPHONE
+            // must be claimed AFTER the mic is already in use (e.g. once WebRTC opens
+            // AudioRecord at call-confirmed time). Calling startForeground() with MICROPHONE
+            // before the mic is active raises a SecurityException that is otherwise
+            // silently swallowed here, leaving the service without the microphone type.
+            if (method.equalsIgnoreCase("setForegroundServiceTypes")) {
+                JSONObject arg = (JSONObject) call.arguments;
+                if (arg.has("types")) {
+                    configForegroundTypes = arg.getString("types");
+                    updateNotificationInfo();
+                    result.success(true);
+                } else {
+                    result.error("400", "setForegroundServiceTypes: 'types' parameter required", null);
+                }
+                return;
+            }
+
             if (method.equalsIgnoreCase("setAutoStartOnBootMode")) {
                 JSONObject arg = (JSONObject) call.arguments;
                 boolean value = arg.getBoolean("value");

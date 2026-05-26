@@ -236,6 +236,21 @@ class AndroidServiceInstance extends ServiceInstance {
     });
   }
 
+  /// Dynamically re-promote this service with the supplied foreground-service
+  /// types while it is already running.
+  ///
+  /// On Android 12+ [AndroidForegroundType.microphone] can only be claimed
+  /// after the microphone is actively in use — calling this too early causes
+  /// a SecurityException that BackgroundService.java silently swallows. Call
+  /// it once WebRTC has already opened AudioRecord (i.e. at call confirmed /
+  /// stream phase) so Android accepts the promotion. Demote back to the idle
+  /// type set (e.g. [AndroidForegroundType.remoteMessaging]) on call end.
+  Future<void> setForegroundServiceTypes(
+      List<AndroidForegroundType> types) async {
+    final joined = types.map((t) => t.name).join(',');
+    await _channel.invokeMethod('setForegroundServiceTypes', {'types': joined});
+  }
+
   Future<bool> openApp() async {
     final result = await _channel.invokeMethod('openApp');
     return result ?? false;
